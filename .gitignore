@@ -1,0 +1,28 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+
+# VS Code
+.vscode/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Build/package output
+build/
+dist/
+*.spec
+
+# Logs
+*.log
+
+# Windows
+Thumbs.db
