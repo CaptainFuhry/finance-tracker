@@ -1,4 +1,6 @@
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton
+from finance_tracker.ui.accounts_view import AccountsView
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -18,5 +20,5 @@ class MainWindow(QMainWindow):
         layout.addWidget(subtitle)
         layout.addWidget(refresh_button)
 
-        self.setCentralWidget(container)
-
+        self.accounts_view = AccountsView()
+        layout.addWidget(self.accounts_view)
