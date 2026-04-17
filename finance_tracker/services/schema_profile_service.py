@@ -10,7 +10,12 @@ class SchemaProfileService:
     def get_all():
         session = SessionLocal()
         try:
-            return session.query(SchemaProfile).filter(SchemaProfile.is_active == True).order_by(SchemaProfile.name).all()
+            return (
+                session.query(SchemaProfile)
+                .filter(SchemaProfile.is_active == True)
+                .order_by(SchemaProfile.name)
+                .all()
+            )
         finally:
             session.close()
 
@@ -64,25 +69,36 @@ class SchemaProfileService:
             session.close()
 
     @staticmethod
-    def create_or_update(name, institution, account_type,
-                         date_column, post_date_column, description_column,
-                         amount_column, debit_column, credit_column,
-                         balance_column, notes):
+    def create_or_update(
+        name,
+        institution,
+        account_type,
+        date_column,
+        post_date_column,
+        description_column,
+        amount_column,
+        debit_column,
+        credit_column,
+        balance_column,
+        notes,
+        category_column=None,   # NEW
+    ):
         session = SessionLocal()
         try:
             existing = session.query(SchemaProfile).filter(SchemaProfile.name == name).first()
             if existing:
-                existing.institution = institution
-                existing.account_type = account_type
-                existing.date_column = date_column
-                existing.post_date_column = post_date_column
+                existing.institution        = institution
+                existing.account_type       = account_type
+                existing.date_column        = date_column
+                existing.post_date_column   = post_date_column
                 existing.description_column = description_column
-                existing.amount_column = amount_column
-                existing.debit_column = debit_column
-                existing.credit_column = credit_column
-                existing.balance_column = balance_column
-                existing.notes = notes
-                existing.is_active = True
+                existing.amount_column      = amount_column
+                existing.debit_column       = debit_column
+                existing.credit_column      = credit_column
+                existing.balance_column     = balance_column
+                existing.notes              = notes
+                existing.category_column    = category_column   # NEW
+                existing.is_active          = True
                 session.commit()
                 return existing.id, None
             else:
@@ -98,6 +114,7 @@ class SchemaProfileService:
                     credit_column=credit_column,
                     balance_column=balance_column,
                     notes=notes,
+                    category_column=category_column,            # NEW
                     is_active=True,
                 )
                 session.add(profile)

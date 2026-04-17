@@ -79,6 +79,7 @@ class SchemaProfile(Base):
     notes = Column(Text, nullable=True)
     is_active = Column(Boolean, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
+    category_column = Column(String(100), nullable=True)
 
     import_batches = relationship("ImportBatch", back_populates="schema_profile")
 

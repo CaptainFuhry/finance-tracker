@@ -37,6 +37,7 @@ FIELD_LABELS = [
     ("amount_col",       "Amount Column (single)"),
     ("debit_col",        "Debit Column (split)"),
     ("credit_col",       "Credit Column (split)"),
+    ("category_col",     "Category Column"),          # NEW
 ]
 
 
@@ -53,11 +54,11 @@ class ImportWizardDialog(QDialog):
         self.ignore_checkboxes = {}
 
         # ── Saved step values — persisted across layout clears ──
-        self._selected_account_id = None
+        self._selected_account_id   = None
         self._selected_account_name = ""
-        self._selected_schema_id = None
-        self._profile_name = ""
-        self._col_mapping = {}   # field_key → selected column value
+        self._selected_schema_id    = None
+        self._profile_name          = ""
+        self._col_mapping           = {}   # field_key → selected column value
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setSpacing(8)
@@ -151,9 +152,9 @@ class ImportWizardDialog(QDialog):
             return
 
         # ── Save Step 1 selections to instance variables BEFORE clearing ──
-        self._selected_account_id = self.account_combo.currentData()
+        self._selected_account_id   = self.account_combo.currentData()
         self._selected_account_name = self.account_combo.currentText()
-        self._selected_schema_id = self.schema_combo.currentData()
+        self._selected_schema_id    = self.schema_combo.currentData()
 
         try:
             self.headers = ImportService.read_csv_headers(self.filepath)
@@ -168,7 +169,12 @@ class ImportWizardDialog(QDialog):
         self._clear_layout()
         self.main_layout.addWidget(QLabel("<b>Step 2 — Map Columns</b>"))
 
-        hint = QLabel("Map your CSV columns to the required fields. Check 'Ignore' for columns you do not want to import.")
+        hint = QLabel(
+            "Map your CSV columns to the required fields. "
+            "If your CSV contains a category column, select it to automatically "
+            "assign and create categories during import. "
+            "Check 'Ignore' for columns you do not want to import."
+        )
         hint.setWordWrap(True)
         self.main_layout.addWidget(hint)
 
@@ -189,6 +195,7 @@ class ImportWizardDialog(QDialog):
         mapping_group = QGroupBox("Field Mapping")
         mapping_layout = QFormLayout(mapping_group)
 
+        # Map wizard field keys to SchemaProfile model attributes
         field_map = {
             "date_col":        "date_column",
             "post_date_col":   "post_date_column",
@@ -196,6 +203,7 @@ class ImportWizardDialog(QDialog):
             "amount_col":      "amount_column",
             "debit_col":       "debit_column",
             "credit_col":      "credit_column",
+            "category_col":    "category_column",   # NEW — requires DB column (see migration note)
         }
 
         self.column_combos = {}
@@ -211,14 +219,23 @@ class ImportWizardDialog(QDialog):
                 if idx >= 0:
                     combo.setCurrentIndex(idx)
             else:
-                pval = profile_val(field_map[field_key])
+                # Auto-populate from saved schema profile if available
+                pval = profile_val(field_map.get(field_key, ""))
                 if pval:
                     idx = combo.findData(pval)
                     if idx >= 0:
                         combo.setCurrentIndex(idx)
                     else:
+                        # Case-insensitive fallback match
                         for i in range(combo.count()):
                             if combo.itemText(i).lower() == pval.lower():
+                                combo.setCurrentIndex(i)
+                                break
+                else:
+                    # Auto-detect category column from CSV headers if not saved
+                    if field_key == "category_col":
+                        for i in range(combo.count()):
+                            if combo.itemText(i).lower() in {"category", "type", "transaction type"}:
                                 combo.setCurrentIndex(i)
                                 break
 
@@ -250,171 +267,4 @@ class ImportWizardDialog(QDialog):
         elif saved_profile:
             self.profile_name_input.setText(saved_profile.name)
         else:
-            self.profile_name_input.setText(self._selected_account_name)
-        pf_layout.addRow("Profile Name:", self.profile_name_input)
-        self.main_layout.addWidget(profile_form)
-
-        nav = self._nav_buttons(back_fn=self._build_step1, next_fn=self._go_step3)
-        self.main_layout.addLayout(nav)
-
-    def _go_step3(self):
-        if not self.column_combos.get("date_col") or self.column_combos["date_col"].currentData() is None:
-            QMessageBox.warning(self, "Mapping Error", "Transaction Date column is required.")
-            return
-        if self.column_combos.get("description_col") and self.column_combos["description_col"].currentData() is None:
-            QMessageBox.warning(self, "Mapping Error", "Description column is required.")
-            return
-
-        # ── Save Step 2 selections BEFORE clearing ──
-        self._col_mapping = {k: combo.currentData() for k, combo in self.column_combos.items()}
-        self._ignored_cols = {h for h, cb in self.ignore_checkboxes.items() if cb.isChecked()}
-        self._profile_name = self.profile_name_input.text().strip()
-
-        self.ignored_cols = self._ignored_cols
-        self._build_step3()
-
-    # ── Step 3: Preview ──────────────────────────────────────────────────────
-
-    def _build_step3(self):
-        self._clear_layout()
-
-        self.main_layout.addWidget(QLabel("<b>Step 3 — Preview (first 5 rows)</b>"))
-
-        try:
-            preview_rows = ImportService.preview_rows(self.filepath, max_rows=5)
-        except Exception as e:
-            QMessageBox.critical(self, "Preview Error", str(e))
-            return
-
-        visible_headers = [h for h in self.headers if h not in self.ignored_cols]
-
-        table = QTableWidget()
-        table.setColumnCount(len(visible_headers))
-        table.setHorizontalHeaderLabels(visible_headers)
-        table.setRowCount(len(preview_rows))
-        table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        table.setFixedHeight(180)
-
-        for row_idx, row in enumerate(preview_rows):
-            for col_idx, h in enumerate(visible_headers):
-                val = str(row.get(h, ""))
-                table.setItem(row_idx, col_idx, QTableWidgetItem(val))
-
-        table.resizeColumnsToContents()
-        self.main_layout.addWidget(table)
-
-        line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
-        self.main_layout.addWidget(line)
-
-        # ── Use saved instance variables — NOT combo box widgets ──
-        amount_mode = (
-            "single amount column"
-            if self._col_mapping.get("amount_col")
-            else "split debit / credit columns"
-        )
-        summary = QLabel(
-            f"<b>File:</b> {os.path.basename(self.filepath)}<br>"
-            f"<b>Account:</b> {self._selected_account_name}<br>"
-            f"<b>Date column:</b> {self._col_mapping.get('date_col')}<br>"
-            f"<b>Description column:</b> {self._col_mapping.get('description_col')}<br>"
-            f"<b>Amount mode:</b> {amount_mode}<br>"
-            f"<b>Ignored columns:</b> {', '.join(self.ignored_cols) if self.ignored_cols else 'none'}"
-        )
-        summary.setWordWrap(True)
-        self.main_layout.addWidget(summary)
-
-        self.main_layout.addStretch()
-
-        nav = self._nav_buttons(back_fn=self._build_step2, next_label="Import", next_fn=self._run_import)
-        self.main_layout.addLayout(nav)
-
-    # ── Import ───────────────────────────────────────────────────────────────
-
-    def _run_import(self):
-        # ── Read entirely from saved instance variables ──
-        account_id = self._selected_account_id
-        date_col = self._col_mapping.get("date_col")
-        post_date_col = self._col_mapping.get("post_date_col")
-        description_col = self._col_mapping.get("description_col")
-        amount_col = self._col_mapping.get("amount_col")
-        debit_col = self._col_mapping.get("debit_col")
-        credit_col = self._col_mapping.get("credit_col")
-        profile_name = self._profile_name
-
-        profile_id = None
-        if profile_name:
-            profile_id, err = SchemaProfileService.create_or_update(
-                name=profile_name,
-                institution="",
-                account_type="",
-                date_column=date_col,
-                post_date_column=post_date_col,
-                description_column=description_col,
-                amount_column=amount_col,
-                debit_column=debit_col,
-                credit_column=credit_col,
-                balance_column=None,
-                notes=None,
-            )
-            if not err and profile_id:
-                SchemaProfileService.save_last_used_for_account(account_id, profile_id)
-
-        batch_id, row_count, error = ImportService.import_transactions(
-            filepath=self.filepath,
-            account_id=account_id,
-            schema_profile_id=profile_id,
-            date_col=date_col,
-            post_date_col=post_date_col,
-            description_col=description_col,
-            amount_col=amount_col,
-            debit_col=debit_col,
-            credit_col=credit_col,
-            ignored_cols=self.ignored_cols,
-            account_type="credit",
-        )
-
-        if error:
-            QMessageBox.critical(self, "Import Failed", error)
-            return
-
-        QMessageBox.information(
-            self,
-            "Import Complete",
-            f"{row_count} transactions imported successfully.\nBatch ID: {batch_id}",
-        )
-        self.accept()
-
-    # ── Helpers ──────────────────────────────────────────────────────────────
-
-    def _nav_buttons(self, back=True, back_fn=None, next_fn=None, next_label="Next →"):
-        layout = QHBoxLayout()
-        layout.addStretch()
-        if back and back_fn:
-            back_btn = QPushButton("← Back")
-            back_btn.clicked.connect(back_fn)
-            layout.addWidget(back_btn)
-        if next_fn:
-            next_btn = QPushButton(next_label)
-            next_btn.clicked.connect(next_fn)
-            layout.addWidget(next_btn)
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.clicked.connect(self.reject)
-        layout.addWidget(cancel_btn)
-        return layout
-
-    def _clear_layout(self):
-        while self.main_layout.count():
-            item = self.main_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
-                self._clear_sub_layout(item.layout())
-
-    def _clear_sub_layout(self, layout):
-        while layout.count():
-            item = layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            self.p

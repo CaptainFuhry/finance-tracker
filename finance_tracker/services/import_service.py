@@ -27,7 +27,7 @@ def _parse_amount(value):
         return None
 
 
-# Columns that should be checked for category values
+# Columns that should be checked for category values when no explicit col is mapped
 CATEGORY_COL_CANDIDATES = {"category", "type", "transaction type"}
 
 
@@ -63,11 +63,25 @@ class ImportService:
         credit_col,       # split credit column (Capital One style) — None if using single
         ignored_cols,     # set of column names to skip entirely
         account_type="credit",
+        category_col=None,  # explicit category column mapping from import wizard
     ):
+        """
+        Import transactions from a CSV file.
+
+        Returns a tuple of (batch_id, rows_imported, new_categories_added, error).
+
+        category_col:
+            When provided, this column is used exclusively for category lookup/creation.
+            When None, the service falls back to scanning all non-ignored columns
+            whose lowercase name matches CATEGORY_COL_CANDIDATES (legacy behaviour).
+        """
         session = SessionLocal()
         try:
             rows_imported = 0
+            new_categories_added = 0
             source_filename = filepath.replace("\\", "/").split("/")[-1]
+
+            # Pre-load existing categories into a cache {name: id}
             cat_cache = {c.name: c.id for c in session.query(Category).all()}
             transactions = []
 
@@ -102,7 +116,7 @@ class ImportService:
                         # Amount is already signed — no transformation needed
 
                     else:
-                        debit_val = _parse_amount(row.get(debit_col, "")) if debit_col else None
+                        debit_val  = _parse_amount(row.get(debit_col, ""))  if debit_col  else None
                         credit_val = _parse_amount(row.get(credit_col, "")) if credit_col else None
 
                         if debit_val and (credit_val is None or credit_val == 0):
@@ -115,21 +129,38 @@ class ImportService:
                             amount = 0.0
 
                     # ── Category ─────────────────────────────────────────────
-                    # Look for a category/type column not in ignored_cols
+                    # Priority 1: use the explicitly mapped category column.
+                    # Priority 2 (fallback): scan non-ignored columns whose name
+                    #   matches CATEGORY_COL_CANDIDATES (original auto-detect).
                     category_id = None
-                    for col in row.keys():
-                        if col in (ignored_cols or set()):
-                            continue
-                        if col.lower() in CATEGORY_COL_CANDIDATES:
-                            cat_name = str(row.get(col, "")).strip()
-                            if cat_name:
-                                if cat_name not in cat_cache:
-                                    new_cat = Category(name=cat_name, is_income=False)
-                                    session.add(new_cat)
-                                    session.flush()
-                                    cat_cache[cat_name] = new_cat.id
-                                category_id = cat_cache[cat_name]
-                            break
+
+                    if category_col and category_col not in (ignored_cols or set()):
+                        # Explicit mapping path
+                        cat_name = str(row.get(category_col, "")).strip()
+                        if cat_name:
+                            if cat_name not in cat_cache:
+                                new_cat = Category(name=cat_name, is_income=False)
+                                session.add(new_cat)
+                                session.flush()
+                                cat_cache[cat_name] = new_cat.id
+                                new_categories_added += 1
+                            category_id = cat_cache[cat_name]
+                    else:
+                        # Auto-detect fallback: look for a matching column name
+                        for col in row.keys():
+                            if col in (ignored_cols or set()):
+                                continue
+                            if col.lower() in CATEGORY_COL_CANDIDATES:
+                                cat_name = str(row.get(col, "")).strip()
+                                if cat_name:
+                                    if cat_name not in cat_cache:
+                                        new_cat = Category(name=cat_name, is_income=False)
+                                        session.add(new_cat)
+                                        session.flush()
+                                        cat_cache[cat_name] = new_cat.id
+                                        new_categories_added += 1
+                                    category_id = cat_cache[cat_name]
+                                break
 
                     # ── Build transaction ────────────────────────────────────
                     tx = Transaction(
@@ -160,10 +191,10 @@ class ImportService:
             session.add(batch)
             session.commit()
 
-            return batch.id, rows_imported, None
+            return batch.id, rows_imported, new_categories_added, None
 
         except Exception as e:
             session.rollback()
-            return None, 0, str(e)
+            return None, 0, 0, str(e)
         finally:
             session.close()
