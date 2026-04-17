@@ -1,7 +1,16 @@
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QTabWidget, QHBoxLayout
+from PySide6.QtWidgets import (
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QStackedWidget,
+)
+
 from finance_tracker.ui.accounts_view import AccountsView
-from finance_tracker.ui.transactions_view import TransactionsView
 from finance_tracker.ui.categories_view import CategoriesView
+from finance_tracker.ui.transactions_view import TransactionsView
+from finance_tracker.ui.running_balance_view import RunningBalanceView
 from finance_tracker.ui.import_wizard import ImportWizardDialog
 
 
@@ -9,51 +18,62 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Finance Tracker")
-        self.resize(1200, 800)
+        self.resize(1400, 900)
 
         container = QWidget()
-        self.setCentralWidget(container)
-        layout = QVBoxLayout(container)
+        root = QHBoxLayout(container)
 
-        # Header row
-        header_layout = QHBoxLayout()
-        title = QLabel("Finance Tracker")
-        title.setStyleSheet("font-size: 20px; font-weight: bold;")
-        self.import_button = QPushButton("Import Transactions")
-        self.refresh_button = QPushButton("Refresh")
-        header_layout.addWidget(title)
-        header_layout.addStretch()
-        header_layout.addWidget(self.import_button)
-        header_layout.addWidget(self.refresh_button)
-        layout.addLayout(header_layout)
+        nav = QVBoxLayout()
+        self.accounts_btn = QPushButton("Accounts")
+        self.transactions_btn = QPushButton("Transactions")
+        self.categories_btn = QPushButton("Categories")
+        self.running_balance_btn = QPushButton("Running Balance")
+        self.import_btn = QPushButton("Import Transactions")
 
-        # Tabs
-        self.tabs = QTabWidget()
+        nav.addWidget(self.accounts_btn)
+        nav.addWidget(self.transactions_btn)
+        nav.addWidget(self.categories_btn)
+        nav.addWidget(self.running_balance_btn)
+        nav.addWidget(self.import_btn)
+        nav.addStretch()
+
+        self.stack = QStackedWidget()
         self.accounts_view = AccountsView()
         self.transactions_view = TransactionsView()
         self.categories_view = CategoriesView()
+        self.running_balance_view = RunningBalanceView()
 
-        self.tabs.addTab(self.accounts_view, "Accounts")
-        self.tabs.addTab(self.transactions_view, "Transactions")
-        self.tabs.addTab(self.categories_view, "Categories")
-        self.tabs.setCurrentIndex(0)
+        self.stack.addWidget(self.accounts_view)
+        self.stack.addWidget(self.transactions_view)
+        self.stack.addWidget(self.categories_view)
+        self.stack.addWidget(self.running_balance_view)
 
-        layout.addWidget(self.tabs)
+        root.addLayout(nav, 0)
+        root.addWidget(self.stack, 1)
 
-        self.import_button.clicked.connect(self.open_import_wizard)
-        self.refresh_button.clicked.connect(self.refresh_active_tab)
+        self.setCentralWidget(container)
+
+        self.accounts_btn.clicked.connect(lambda: self.stack.setCurrentWidget(self.accounts_view))
+        self.transactions_btn.clicked.connect(lambda: self.stack.setCurrentWidget(self.transactions_view))
+        self.categories_btn.clicked.connect(lambda: self.stack.setCurrentWidget(self.categories_view))
+        self.running_balance_btn.clicked.connect(self.open_running_balance)
+        self.import_btn.clicked.connect(self.open_import_wizard)
 
     def open_import_wizard(self):
         dialog = ImportWizardDialog(self)
-        if dialog.exec() == ImportWizardDialog.Accepted:
-            self.transactions_view.load_transactions()
-            self.categories_view.load_categories()
+        if dialog.exec():
+            if hasattr(self.transactions_view, "load_transactions"):
+                self.transactions_view.load_transactions()
+            if hasattr(self.categories_view, "load_categories"):
+                self.categories_view.load_categories()
+            if hasattr(self.running_balance_view, "load_accounts"):
+                self.running_balance_view.load_accounts()
+            if hasattr(self.running_balance_view, "refresh_data"):
+                self.running_balance_view.refresh_data()
 
-    def refresh_active_tab(self):
-        index = self.tabs.currentIndex()
-        if index == 0:
-            self.accounts_view.load_accounts()
-        elif index == 1:
-            self.transactions_view.load_transactions()
-        elif index == 2:
-            self.categories_view.load_categories()
+    def open_running_balance(self):
+        if hasattr(self.running_balance_view, "load_accounts"):
+            self.running_balance_view.load_accounts()
+        if hasattr(self.running_balance_view, "refresh_data"):
+            self.running_balance_view.refresh_data()
+        self.stack.setCurrentWidget(self.running_balance_view)

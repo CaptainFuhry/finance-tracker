@@ -33,6 +33,7 @@ class Account(Base):
     institution = Column(String(150), nullable=False)
     account_type = Column(String(50), nullable=False)
     starting_balance = Column(Numeric(12, 2), nullable=False)
+    starting_balance_date = Column(Date, nullable=True)
     created_at = Column(DateTime, nullable=False, default=func.now())
 
     import_batches = relationship("ImportBatch", back_populates="account")
@@ -76,10 +77,10 @@ class SchemaProfile(Base):
     debit_column = Column(String(100), nullable=True)
     credit_column = Column(String(100), nullable=True)
     balance_column = Column(String(100), nullable=True)
+    category_column = Column(String(100), nullable=True)
     notes = Column(Text, nullable=True)
     is_active = Column(Boolean, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
-    category_column = Column(String(100), nullable=True)
 
     import_batches = relationship("ImportBatch", back_populates="schema_profile")
 

@@ -123,6 +123,9 @@ class ImportWizardDialog(QDialog):
             session.close()
 
     def _on_account_changed(self):
+    # Guard: schema_combo may not exist yet during initial account list population
+        if not hasattr(self, "schema_combo") or self.schema_combo is None:
+            return
         account_id = self.account_combo.currentData()
         if account_id is None:
             return
