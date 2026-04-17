@@ -10,6 +10,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -61,6 +62,23 @@ class Category(Base):
 
     merchant_rules = relationship("MerchantRule", back_populates="category")
     transactions = relationship("Transaction", back_populates="category")
+    budgets = relationship("CategoryBudget", back_populates="category")
+
+
+class CategoryBudget(Base):
+    __tablename__ = "category_budgets"
+    __table_args__ = (
+        UniqueConstraint("category_id", "budget_month", name="uq_category_budget_month"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
+    budget_month = Column(Date, nullable=False)
+    budget_amount = Column(Numeric(12, 2), nullable=False)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    category = relationship("Category", back_populates="budgets")
 
 
 class SchemaProfile(Base):
