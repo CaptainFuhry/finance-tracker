@@ -15,11 +15,11 @@ QPushButton {
     text-align: left;
     padding: 8px 12px;
     border-radius: 4px;
-    color: #e0e0ff;
+    color: #e8e8e8;
 }
 QPushButton:hover {
-    background-color: #1e1e3a;
-    color: #00f5ff;
+    background-color: #2e2e2e;
+    color: #ffffff;
 }
 """
 
@@ -28,12 +28,12 @@ QPushButton {
     text-align: left;
     padding: 8px 12px;
     border-radius: 4px;
-    color: #00f5ff;
+    color: #90caf9;
     font-weight: bold;
 }
 QPushButton:hover {
-    background-color: #0d1a2a;
-    color: #ffe600;
+    background-color: #2e2e2e;
+    color: #ffffff;
 }
 """
 
@@ -53,7 +53,6 @@ class MainWindow(QMainWindow):
         self.monthly_btn      = QPushButton("Monthly View")
         self.budgeting_btn    = QPushButton("Budgeting View")
         self.accounts_btn     = QPushButton("Accounts")
-        self.import_btn       = QPushButton("Import Transactions")
         self.transactions_btn = QPushButton("Transactions")
         self.categories_btn   = QPushButton("Categories")
 
@@ -61,14 +60,12 @@ class MainWindow(QMainWindow):
             self.monthly_btn,
             self.budgeting_btn,
             self.accounts_btn,
-            self.import_btn,
             self.transactions_btn,
             self.categories_btn,
         ]:
             btn.setStyleSheet(NAV_STYLE)
             nav.addWidget(btn)
 
-        self.import_btn.setStyleSheet(IMPORT_BTN_STYLE)
         nav.addStretch()
 
         self.stack = QStackedWidget()
@@ -94,9 +91,12 @@ class MainWindow(QMainWindow):
         self.monthly_btn.clicked.connect(self.open_monthly_view)
         self.budgeting_btn.clicked.connect(self.open_budgeting_view)
         self.accounts_btn.clicked.connect(self.open_accounts_view)
-        self.import_btn.clicked.connect(self.open_import_wizard)
         self.transactions_btn.clicked.connect(lambda: self.stack.setCurrentWidget(self.transactions_view))
         self.categories_btn.clicked.connect(lambda: self.stack.setCurrentWidget(self.categories_view))
+
+        # Signals from Transactions tab
+        self.transactions_view.import_requested.connect(self.open_import_wizard)
+        self.transactions_view.refresh_requested.connect(self._on_refresh_all)
 
         self.open_monthly_view()
 
@@ -117,9 +117,13 @@ class MainWindow(QMainWindow):
     def open_import_wizard(self):
         dialog = ImportWizardDialog(self)
         if dialog.exec():
-            self.refresh_dependents()
-            self.monthly_view.refresh_data()
-            self.budgeting_view.refresh_data()
+            self._on_refresh_all()
+
+    def _on_refresh_all(self):
+        """Reload all views after an import or manual refresh."""
+        self.refresh_dependents()
+        self.monthly_view.refresh_data()
+        self.budgeting_view.refresh_data()
 
     def open_accounts_view(self):
         self.accounts_view.refresh_data()

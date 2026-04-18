@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QDialog, QFormLayout, QLineEdit, QComboBox, QDialogButtonBox,
     QDateEdit, QHeaderView, QRadioButton,
 )
-from PySide6.QtCore import Qt, QDate, QEvent
+from PySide6.QtCore import Qt, QDate, QEvent, Signal
 from PySide6.QtGui import QColor
 
 from finance_tracker.data.db import SessionLocal
@@ -132,6 +132,9 @@ class BulkCategoryDialog(QDialog):
 # ── Main view ─────────────────────────────────────────────────────────────────
 
 class TransactionsView(QWidget):
+    import_requested = Signal()   # emitted when Import button clicked
+    refresh_requested = Signal()  # emitted when Refresh button clicked
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.session             = SessionLocal()
@@ -171,6 +174,19 @@ class TransactionsView(QWidget):
         btn_row.addSpacing(16)
         btn_row.addWidget(self.bulk_cat_button)
         btn_row.addStretch()
+
+        self.import_button  = QPushButton("⬆  Import Transactions")
+        self.refresh_button = QPushButton("↻  Refresh")
+        self.import_button.setStyleSheet(
+            "background: #1e3a5f; color: #90caf9; border: 1px solid #2a5080;"
+            "padding: 4px 14px; border-radius: 4px; font-weight: bold;"
+        )
+        self.refresh_button.setStyleSheet(
+            "background: #1e2e1e; color: #81c784; border: 1px solid #2a4a2a;"
+            "padding: 4px 14px; border-radius: 4px;"
+        )
+        btn_row.addWidget(self.import_button)
+        btn_row.addWidget(self.refresh_button)
         main_layout.addLayout(btn_row)
 
         self.totals_label = QLabel("")
@@ -204,6 +220,8 @@ class TransactionsView(QWidget):
         self.edit_button.clicked.connect(self.edit_transaction)
         self.delete_button.clicked.connect(self.delete_transaction)
         self.bulk_cat_button.clicked.connect(self.bulk_assign_category)
+        self.import_button.clicked.connect(self.import_requested.emit)
+        self.refresh_button.clicked.connect(self._on_refresh_clicked)
 
     # ── Event filter ──────────────────────────────────────────────────────────
 
@@ -282,6 +300,10 @@ class TransactionsView(QWidget):
         self._anchor_row = -1
 
     # ── Load ─────────────────────────────────────────────────────────────────
+
+    def _on_refresh_clicked(self):
+        self.load_transactions()
+        self.refresh_requested.emit()
 
     def load_transactions(self, account_id=None):
         filter_id = account_id if account_id is not None else self._current_account_id

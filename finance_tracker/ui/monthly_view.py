@@ -27,26 +27,26 @@ from finance_tracker.data.models import Transaction, Category, Account
 # ─────────────────────────────────────────────────────────────────────────────
 # Cyberpunk palette
 # ─────────────────────────────────────────────────────────────────────────────
-CP_BG        = '#0d0d1a'
-CP_SURFACE   = '#12122a'
-CP_GRID      = '#1e1e3a'
-CP_TEXT      = '#e0e0ff'
-CP_TEXT_DIM  = '#7070aa'
-CP_CYAN      = '#00f5ff'
-CP_MAGENTA   = '#ff00cc'
-CP_YELLOW    = '#ffe600'
-CP_GREEN     = '#39ff14'
-CP_ORANGE    = '#ff6600'
-CP_PURPLE    = '#bf00ff'
-CP_PINK      = '#ff3399'
-CP_TEAL      = '#00ffcc'
-CP_RED       = '#ff2244'
-CP_BLUE      = '#4488ff'
+CP_BG        = '#1a1a1a'
+CP_SURFACE   = '#242424'
+CP_GRID      = '#333333'
+CP_TEXT      = '#e8e8e8'
+CP_TEXT_DIM  = '#888888'
+CP_CYAN      = '#4fc3f7'
+CP_MAGENTA   = '#ce93d8'
+CP_YELLOW    = '#fff176'
+CP_GREEN     = '#81c784'
+CP_ORANGE    = '#ffb74d'
+CP_PURPLE    = '#9575cd'
+CP_PINK      = '#f48fb1'
+CP_TEAL      = '#4db6ac'
+CP_RED       = '#ef5350'
+CP_BLUE      = '#5c9ee8'
 
 CP_CATEGORY_COLORS = [
-    CP_CYAN, CP_MAGENTA, CP_YELLOW, CP_GREEN, CP_ORANGE,
-    CP_PURPLE, CP_PINK, CP_TEAL, CP_RED, CP_BLUE,
-    '#ff9900', '#00ccff', '#cc00ff', '#ffcc00', '#00ff88',
+    '#5c9ee8', '#ef5350', '#81c784', '#ffb74d', '#ce93d8',
+    '#4db6ac', '#f48fb1', '#fff176', '#4fc3f7', '#ff8a65',
+    '#a5d6a7', '#90caf9', '#f06292', '#aed581', '#80cbc4',
 ]
 
 ACCOUNT_CARD_STYLE = """
@@ -62,22 +62,22 @@ QFrame {{
 
 ACCOUNT_SCROLL_STYLE = """
 QScrollArea { border: none; background: transparent; }
-QScrollBar:horizontal { height: 5px; background: #0d0d1a; }
-QScrollBar::handle:horizontal { background: #00f5ff; border-radius: 2px; }
+QScrollBar:horizontal { height: 5px; background: #1a1a1a; }
+QScrollBar::handle:horizontal { background: #555555; border-radius: 2px; }
 """
 
 LEGEND_STYLE = """
 QListWidget {
-    background: #0d0d1a;
-    border: 1px solid #1e1e3a;
+    background: #1a1a1a;
+    border: 1px solid #333333;
     border-radius: 4px;
-    color: #e0e0ff;
+    color: #e8e8e8;
     font-size: 11px;
     outline: none;
 }
 QListWidget::item { padding: 3px 6px; border-radius: 3px; }
-QListWidget::item:hover { background: #1e1e3a; color: #00f5ff; }
-QListWidget::item:selected { background: #1e1e3a; color: #00f5ff; }
+QListWidget::item:hover { background: #2e2e2e; color: #ffffff; }
+QListWidget::item:selected { background: #2e2e2e; color: #ffffff; }
 """
 
 
@@ -130,18 +130,18 @@ class AccountBalanceCard(QFrame):
     def __init__(self, name, balance, parent=None):
         super().__init__(parent)
         positive = balance >= 0
-        bg = "#0d1a0d" if positive else "#1a0d0d"
-        border = "#39ff14" if positive else "#ff2244"
+        bg = "#1e2a1e" if positive else "#2a1e1e"
+        border = "#81c784" if positive else "#ef5350"
         self.setStyleSheet(ACCOUNT_CARD_STYLE.format(bg=bg, border=border))
         layout = QHBoxLayout(self)
         layout.setSpacing(8)
         layout.setContentsMargins(8, 4, 8, 4)
         name_label = QLabel(name)
-        name_label.setStyleSheet("font-size: 11px; color: #7070aa; font-weight: bold;")
+        name_label.setStyleSheet("font-size: 11px; color: #aaaaaa; font-weight: bold;")
         name_label.setWordWrap(False)
         balance_label = QLabel(f"${balance:,.2f}")
         balance_label.setStyleSheet(
-            f"font-size: 13px; font-weight: bold; color: {'#39ff14' if positive else '#ff2244'};"
+            f"font-size: 13px; font-weight: bold; color: {'#81c784' if positive else '#ef5350'};"
         )
         layout.addWidget(name_label)
         layout.addWidget(balance_label)
@@ -173,7 +173,7 @@ class ChartLegendPanel(QWidget):
         right.setContentsMargins(0, 0, 0, 0)
 
         legend_title = QLabel(title)
-        legend_title.setStyleSheet(f"font-size: 11px; color: {CP_CYAN}; font-weight: bold;")
+        legend_title.setStyleSheet("font-size: 11px; color: #aaaaaa; font-weight: bold;")
         right.addWidget(legend_title)
 
         self.legend_list = QListWidget()
@@ -252,13 +252,13 @@ class MonthlyView(QWidget):
         layout.setContentsMargins(12, 8, 12, 8)
 
         title = QLabel('Monthly Analytics')
-        title.setStyleSheet(f'font-size: 18px; font-weight: bold; color: {CP_CYAN};')
+        title.setStyleSheet('font-size: 18px; font-weight: bold; color: #e8e8e8;')
         title.setFixedHeight(28)
         layout.addWidget(title)
 
         # ── Account Balance Banner ────────────────────────────────────────
         banner_container = QWidget()
-        banner_container.setStyleSheet(f"background: {CP_BG}; border-radius: 6px; border: 1px solid {CP_GRID};")
+        banner_container.setStyleSheet("background: #1a1a1a; border-radius: 6px; border: 1px solid #333333;")
         banner_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         banner_container.setFixedHeight(80)
         banner_outer = QVBoxLayout(banner_container)
@@ -266,7 +266,7 @@ class MonthlyView(QWidget):
         banner_outer.setSpacing(2)
 
         banner_title = QLabel("Account Balances")
-        banner_title.setStyleSheet(f"font-size: 10px; color: {CP_TEXT_DIM}; font-weight: bold;")
+        banner_title.setStyleSheet("font-size: 10px; color: #888888; font-weight: bold;")
         banner_title.setFixedHeight(14)
         banner_outer.addWidget(banner_title)
 
@@ -291,14 +291,14 @@ class MonthlyView(QWidget):
         top = QHBoxLayout()
         top.addWidget(QLabel('Month:'))
         self.month_combo = QComboBox()
-        self.month_combo.setStyleSheet(f"background: {CP_SURFACE}; color: {CP_TEXT}; border: 1px solid {CP_GRID};")
+        self.month_combo.setStyleSheet("background: #242424; color: #e8e8e8; border: 1px solid #333333;")
         self.month_combo.currentIndexChanged.connect(self.refresh_data)
         top.addWidget(self.month_combo)
         top.addStretch()
         layout.addLayout(top)
 
         self.summary_label = QLabel('')
-        self.summary_label.setStyleSheet(f'font-size: 12px; color: {CP_TEXT_DIM};')
+        self.summary_label.setStyleSheet('font-size: 12px; color: #888888;')
         layout.addWidget(self.summary_label)
 
         # ── Scroll area for all chart rows ────────────────────────────────
@@ -307,7 +307,7 @@ class MonthlyView(QWidget):
         charts_scroll.setStyleSheet(f"QScrollArea {{ background: {CP_BG}; border: none; }}")
 
         charts_container = QWidget()
-        charts_container.setStyleSheet(f"background: {CP_BG};")
+        charts_container.setStyleSheet("background: #1a1a1a;")
         charts_vbox = QVBoxLayout(charts_container)
         charts_vbox.setSpacing(10)
         charts_vbox.setContentsMargins(0, 0, 0, 0)
@@ -323,7 +323,7 @@ class MonthlyView(QWidget):
         # Divider
         div = QFrame()
         div.setFrameShape(QFrame.HLine)
-        div.setStyleSheet(f"color: {CP_GRID};")
+        div.setStyleSheet("color: #333333;")
         charts_vbox.addWidget(div)
 
         # Row 2: cash flow trend + net worth trend
@@ -341,14 +341,14 @@ class MonthlyView(QWidget):
         self.category_table.setHorizontalHeaderLabels(['Category', 'Actual Spend', 'Txn Count', 'Share'])
         self.category_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.category_table.verticalHeader().setVisible(False)
-        self.category_table.setStyleSheet(f"background: {CP_SURFACE}; color: {CP_TEXT}; gridline-color: {CP_GRID};")
+        self.category_table.setStyleSheet("background: #242424; color: #e8e8e8; gridline-color: #333333;")
 
         self.recurring_table = QTableWidget()
         self.recurring_table.setColumnCount(6)
         self.recurring_table.setHorizontalHeaderLabels(['Recurring Candidate', 'Occurrences', 'Avg Amount', 'First Seen', 'Last Seen', 'Span Months'])
         self.recurring_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.recurring_table.verticalHeader().setVisible(False)
-        self.recurring_table.setStyleSheet(f"background: {CP_SURFACE}; color: {CP_TEXT}; gridline-color: {CP_GRID};")
+        self.recurring_table.setStyleSheet("background: #242424; color: #e8e8e8; gridline-color: #333333;")
 
         row3.addWidget(self.category_table)
         row3.addWidget(self.recurring_table)
@@ -374,8 +374,8 @@ class MonthlyView(QWidget):
 
         total_card = AccountBalanceCard("TOTAL", total)
         total_card.setStyleSheet(
-            ACCOUNT_CARD_STYLE.format(bg="#0d0d2a", border=CP_CYAN) +
-            f"QFrame {{ border: 1px solid {CP_CYAN}; }}"
+            ACCOUNT_CARD_STYLE.format(bg="#1e1e2e", border="#5c9ee8") +
+            "QFrame { border: 1px solid #5c9ee8; }"
         )
         self.balance_cards_layout.insertWidget(self.balance_cards_layout.count() - 1, total_card)
 
@@ -547,17 +547,17 @@ class MonthlyView(QWidget):
                 if highlight is None or i == highlight:
                     colors.append(c)
                 else:
-                    colors.append('#333355')
+                    colors.append('#3a3a3a')
 
             fig, ax = plt.subplots(figsize=(6, 3.5), dpi=110)
             setup_cp_axes(ax)
             bars = ax.bar(labels, [income, expenses, net], color=colors,
                           edgecolor=CP_GRID, linewidth=0.8, width=0.5)
             ax.axhline(0, color=CP_TEXT_DIM, linewidth=0.8)
-            ax.set_title('Income vs Expense', color=CP_CYAN, fontsize=10)
+            ax.set_title('Income vs Expense', color='#cccccc', fontsize=10)
             max_abs = max(abs(v) for v in [income, expenses, net]) or 1
             for i, (b, v) in enumerate(zip(bars, [income, expenses, net])):
-                c = colors[i] if colors[i] != '#333355' else CP_TEXT_DIM
+                c = colors[i] if colors[i] != '#3a3a3a' else CP_TEXT_DIM
                 offset = max_abs * 0.04 if v >= 0 else -max_abs * 0.1
                 ax.text(b.get_x() + b.get_width()/2, v + offset,
                         f'${abs(v):,.0f}', ha='center', fontsize=8, color=c)
@@ -598,26 +598,23 @@ class MonthlyView(QWidget):
                     edge_widths.append(0.3)
 
             fig, ax = plt.subplots(figsize=(6, 3.5), dpi=110)
-            fig.patch.set_facecolor(CP_BG)
-            ax.set_facecolor(CP_BG)
-            wedges, texts, autotexts = ax.pie(
+            fig.patch.set_facecolor('#1a1a1a')
+            ax.set_facecolor('#1a1a1a')
+            wedges, texts = ax.pie(
                 values,
                 labels=None,
-                autopct='%1.1f%%',
+                autopct=None,
                 startangle=90,
                 colors=colors_base,
-                wedgeprops={'linewidth': 0.5, 'edgecolor': CP_BG},
-                pctdistance=0.78,
+                wedgeprops={'linewidth': 0.5, 'edgecolor': '#1a1a1a'},
             )
-            for i, (w, at) in enumerate(zip(wedges, autotexts)):
+            for i, w in enumerate(wedges):
                 w.set_alpha(alphas[i])
                 w.set_linewidth(edge_widths[i])
-                at.set_color(CP_BG)
-                at.set_fontsize(7)
                 if highlight == i:
-                    w.set_edgecolor(CP_YELLOW)
+                    w.set_edgecolor('#ffffff')
                     w.set_linewidth(2.5)
-            ax.set_title('Spending by Category', color=CP_CYAN, fontsize=10)
+            ax.set_title('Spending by Category', color='#cccccc', fontsize=10)
             return fig_to_pixmap(fig).scaled(580, 320, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
         self.category_panel.set_render_fn(make)
@@ -658,7 +655,7 @@ class MonthlyView(QWidget):
             else:
                 ax.text(0.5, 0.5, 'No data', ha='center', va='center', color=CP_TEXT_DIM)
                 ax.axis('off')
-            ax.set_title('Monthly Cash Flow Trend', color=CP_CYAN, fontsize=10)
+            ax.set_title('Monthly Cash Flow Trend', color='#cccccc', fontsize=10)
             return fig_to_pixmap(fig).scaled(580, 320, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
         self.cashflow_panel.set_render_fn(make)
@@ -715,7 +712,7 @@ class MonthlyView(QWidget):
             else:
                 ax.text(0.5, 0.5, 'No data', ha='center', va='center', color=CP_TEXT_DIM)
                 ax.axis('off')
-            ax.set_title('Estimated Net Worth Trend', color=CP_CYAN, fontsize=10)
+            ax.set_title('Estimated Net Worth Trend', color='#cccccc', fontsize=10)
             return fig_to_pixmap(fig).scaled(580, 320, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
         self.networth_panel.set_render_fn(make)
